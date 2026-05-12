@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package handcontrol;
+
+// HandData carries one frame's servo command + the staged timestamps that
+// allow per-stage latency measurement. All *_time_ns fields are wall-clock
+// nanoseconds (time.time_ns()) on the machine that recorded them; absolute
+// comparison across machines requires the time-sync hook.
+message HandData {
+  uint64 frame_id = 1;
+  string backend_name = 2;
+  repeated int32 finger_values = 3;
+  float confidence = 4;
+
+  int64 capture_time_ns = 5;
+  int64 vision_done_time_ns = 6;
+  int64 client_send_time_ns = 7;
+
+  bool warmup = 8;
+}
+
+// Ack returns the per-frame timestamps the server captured plus the robot ACK
+// time, so the client (or runner) can write the full latency row.
+message Ack {
+  uint64 frame_id = 1;
+  bool success = 2;
+
+  int64 server_receive_time_ns = 3;
+  int64 serial_write_done_time_ns = 4;
+  int64 robot_ack_time_ns = 5;
+}
+
+service HandController {
+  // Bidirectional stream: client sends staged HandData, server returns Ack
+  // for each processed frame so that per-frame latency can be reconstructed
+  // on the client side.
+  rpc StreamHandData(stream HandData) returns (stream Ack);
+}
