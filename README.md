@@ -46,6 +46,19 @@ source venv/bin/activate
 ./tools/regen_proto.sh
 ```
 
+## Vision-only preview (no robot, single terminal)
+
+If you only want to see what a backend detects on camera — e.g. to
+sanity-check a new `.pt` file — skip the gRPC/Arduino setup entirely:
+
+```bash
+python -u -m tools.preview_vision --backend yolo
+python -u -m tools.preview_vision --backend yolo --model-path weights/best.pt
+python -u -m tools.preview_vision --backend mediapipe --show-indices
+```
+
+This bypasses the network + serial path; no latency CSV is written.
+
 ## Running it (three terminals)
 
 **Order matters.** Terminal 1 must be started *first* — it creates the
