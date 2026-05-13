@@ -24,9 +24,30 @@ def _make_yolo(**kwargs: Any) -> VisionBackend:
     return YoloBackend(**kwargs)
 
 
+def _make_mmpose_preset(preset_name: str) -> Callable[..., VisionBackend]:
+    """Build an MMPose constructor pinned to a specific preset model.
+
+    User-supplied `model_path` still wins, so each preset is just a default.
+    """
+    def _factory(**kwargs: Any) -> VisionBackend:
+        from .mmpose_backend import MMPOSE_PRESETS, MMPoseBackend
+
+        kwargs.setdefault("model_path", MMPOSE_PRESETS[preset_name])
+        return MMPoseBackend(**kwargs)
+
+    _factory.__name__ = f"_make_{preset_name}"
+    return _factory
+
+
 _REGISTRY: dict[str, Callable[..., VisionBackend]] = {
     "mediapipe": _make_mediapipe,
     "yolo": _make_yolo,
+    # MMPose architecture presets — comparison set for hand-keypoint research.
+    # Each auto-downloads weights on first run.
+    "rtmpose": _make_mmpose_preset("rtmpose_hand"),
+    "hrnet": _make_mmpose_preset("hrnet_hand"),
+    "hourglass": _make_mmpose_preset("hourglass_hand"),
+    "resnet": _make_mmpose_preset("resnet_hand"),
 }
 
 

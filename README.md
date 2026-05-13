@@ -1,7 +1,7 @@
 # telerobo-hand-vision
 
 A modular, low-latency gRPC pipeline for driving a robotic hand from any
-**pluggable vision backend** (MediaPipe, YOLO, ...). Designed as a research
+**pluggable vision backend** (MediaPipe, YOLO, MMPose, ...). Designed as a research
 platform for fairly comparing different hand-tracking approaches over the
 **same** network + actuation path, with per-stage latency measurement.
 
@@ -22,7 +22,7 @@ where time is actually spent (`vision`, `network`, `serial`, `command_accept`).
 ```
 proto/                hand_control.proto (staged-timestamp message schema)
 src/
-  vision/             VisionBackend interface + MediaPipe + YOLO (skeleton)
+  vision/             VisionBackend interface + MediaPipe + YOLO + MMPose (RTMPose/HRNet/Hourglass/ResNet presets)
   network/            gRPC client / server + generated stubs
   robot/              Serial bridge to Arduino with ACK parsing
   metrics/            CSV logger, run_metadata.json, time-sync hook
@@ -55,9 +55,33 @@ sanity-check a new `.pt` file — skip the gRPC/Arduino setup entirely:
 python -u -m tools.preview_vision --backend yolo
 python -u -m tools.preview_vision --backend yolo --model-path weights/best.pt
 python -u -m tools.preview_vision --backend mediapipe --show-indices
+python -u -m tools.preview_vision --backend rtmpose      # MMPose preset
+python -u -m tools.preview_vision --backend hrnet        # MMPose preset
+python -u -m tools.preview_vision --backend hourglass    # MMPose preset
+python -u -m tools.preview_vision --backend resnet       # MMPose preset
 ```
 
 This bypasses the network + serial path; no latency CSV is written.
+
+### Available backends
+
+| Backend name | Architecture | Notes |
+|---|---|---|
+| `mediapipe` | MediaPipe Hands (Tasks API) | Regression CNN, fast baseline |
+| `yolo` | Ultralytics YOLO-Pose | Anchor-based one-stage, trainable in-repo |
+| `rtmpose` | RTMPose-m (Hand5) | SimCC, transformer-distilled — fastest MMPose option |
+| `hrnet` | HRNetv2-w18 (COCO-Wholebody-Hand) | High-resolution heatmap CNN — accurate baseline |
+| `hourglass` | Stacked Hourglass-52 | OpenPose-family multi-scale heatmaps |
+| `resnet` | ResNet-50 SimpleBaseline | Classic topdown CNN baseline |
+
+All six backends produce the same 21-keypoint MediaPipe topology and run
+through the same `landmarks_to_servo` post-processing, so latency and
+servo-angle comparisons are apples-to-apples — only the model changes.
+MMPose presets auto-download weights from openmmlab on first invocation.
+
+To load a custom MMPose config not covered by the presets, edit
+`MMPOSE_PRESETS` in `src/vision/mmpose_backend.py` and add a new entry, then
+register it in `src/vision/__init__.py`.
 
 ## Running it (three terminals)
 
