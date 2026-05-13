@@ -24,9 +24,16 @@ def _make_yolo(**kwargs: Any) -> VisionBackend:
     return YoloBackend(**kwargs)
 
 
+def _make_mmpose(**kwargs: Any) -> VisionBackend:
+    from .mmpose_backend import MMPoseBackend
+
+    return MMPoseBackend(**kwargs)
+
+
 _REGISTRY: dict[str, Callable[..., VisionBackend]] = {
     "mediapipe": _make_mediapipe,
     "yolo": _make_yolo,
+    "mmpose": _make_mmpose,
 }
 
 
